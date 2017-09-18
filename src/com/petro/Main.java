@@ -18,5 +18,6 @@ public class Main {
             }
 
         }
+        System.out.println("Game ended. " + myGame.getResult().toUpperCase() + ".");
     }
 }

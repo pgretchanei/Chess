@@ -41,15 +41,18 @@ public class Game {
         }
 
         if(isLegalMove(currentPlayer, start, end)){
-            if(start.equals(EPosition.DRAW)) {
-                currentPlayer.setOfferedDraw(true);
-                updateGameState();
-                return;
-            }
             if(start.equals(EPosition.RESIGN)){
                 currentPlayer.setResigned();
+                System.out.println(currentPlayer.getSide() + " resigned.");
                 updateGameState();
+                updateNextToMove();
                 return;
+            }
+
+            //TODO: update draw mechanism as the player has to make a move and only then offer a draw
+            if(start.equals(EPosition.DRAW)) {
+                currentPlayer.setOfferedDraw(true);
+                System.out.println(currentPlayer.getSide() + " offered draw");
             }
 
             executeMove(currentPlayer, start, end);
@@ -65,7 +68,7 @@ public class Game {
     }
 
     private void executeMove( Player player, EPosition start, EPosition end){
-        System.out.println("Executing a move for " + player.getSide() + ": from '" + start + "' to '" + end);
+        System.out.println("Executing a move for " + player.getSide() + ": from '" + start + "' to '" + end + "'");
         player.updatePiece( start, end);
     }
 
@@ -74,6 +77,25 @@ public class Game {
         return state.equals(EGameState.BLACK_WON)
                 || state.equals(EGameState.WHITE_WON)
                 || state.equals(EGameState.DRAW);
+    }
+
+    public String getResult(){
+        String result = new String();
+        switch(state) {
+            case BLACK_WON:
+                result = "Black won";
+                break;
+            case WHITE_WON:
+                result = "White won";
+                break;
+            case DRAW:
+                result = "Draw";
+                break;
+            default:
+                result = "Game aborted";
+                break;
+        }
+        return result;
     }
 
     public ESide getNextToMove() {
@@ -347,6 +369,7 @@ public class Game {
                 break;
             case "RESIGN":
                 position = EPosition.RESIGN;
+                break;
             default:
                 position = EPosition.ERROR;
         }
