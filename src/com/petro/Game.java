@@ -41,6 +41,17 @@ public class Game {
         }
 
         if(isLegalMove(currentPlayer, start, end)){
+            if(start.equals(EPosition.DRAW)) {
+                currentPlayer.setOfferedDraw(true);
+                updateGameState();
+                return;
+            }
+            if(start.equals(EPosition.RESIGN)){
+                currentPlayer.setResigned();
+                updateGameState();
+                return;
+            }
+
             executeMove(currentPlayer, start, end);
             if(needToUpdateOtherPlayer(otherPlayer, end)) {
                 capturePiece(otherPlayer, end);
@@ -60,7 +71,9 @@ public class Game {
 
     // check if anyone won or a draw
     public boolean end(){
-        return false;
+        return state.equals(EGameState.BLACK_WON)
+                || state.equals(EGameState.WHITE_WON)
+                || state.equals(EGameState.DRAW);
     }
 
     public ESide getNextToMove() {
@@ -122,6 +135,15 @@ public class Game {
         if(start.equals(EPosition.DRAW) || start.equals(EPosition.RESIGN))
             isDrawResign = true;
         return isDrawResign;
+    }
+
+    public void updateGameState(){
+        if(nextToMove.equals(ESide.WHITE) && white.getResigned())
+            state = EGameState.BLACK_WON;
+        if(nextToMove.equals(ESide.BLACK) && black.getResigned())
+            state = EGameState.WHITE_WON;
+        if(white.getOfferedDraw() && black.getOfferedDraw())
+            state = EGameState.DRAW;
     }
 
     public EPosition convertToEnum(String input){

@@ -14,6 +14,7 @@ public class Player implements IPlayer {
     private ESide side;
     private Piece[] pieces = new Piece[numOfPieces];
     private boolean offeredDraw = false;
+    private boolean resigned = false;
 
     public Player(ESide side) {
         this.side = side;
@@ -49,6 +50,7 @@ public class Player implements IPlayer {
             }
             index++;
         }
+        recallDrawOffer();
     }
 
     public void capturePiece(EPosition position){
@@ -60,6 +62,27 @@ public class Player implements IPlayer {
             }
             index++;
         }
+    }
+
+    public void setResigned(){
+        resigned = true;
+    }
+
+    public boolean getResigned(){
+        return resigned;
+    }
+
+    private void recallDrawOffer(){
+        if(getOfferedDraw())
+            setOfferedDraw(false);
+    }
+
+    public void setOfferedDraw(boolean offeredDraw) {
+        this.offeredDraw = offeredDraw;
+    }
+
+    public boolean getOfferedDraw(){
+        return this.offeredDraw;
     }
 
     private void InitializePieces( ESide side){
