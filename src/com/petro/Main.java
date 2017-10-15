@@ -9,10 +9,16 @@ public class Main {
         Game myGame = new Game();
         while(!myGame.end()) {
             Scanner S = new Scanner(System.in);
-            EPosition start = myGame.convertToEnum(S.next());
-            EPosition end = myGame.convertToEnum(S.next());
-            if (!start.equals(EPosition.ERROR) && !end.equals(EPosition.ERROR)){
-                myGame.makeMove(start, end);
+            String first = S.next();
+            String second = S.next();
+            EPosition start = myGame.convertToEnum(first);
+            EPosition end = myGame.convertToEnum(second);
+            if (start != null && end != null){
+                //EGameOffer offer1 = myGame.convertToEnumOffer(first);
+                //EGameOffer offer2 = myGame.convertToEnumOffer(second);
+                //if(!offer1.equals(EGameOffer.ERROR) && !offer2.equals(EGameOffer.ERROR)) {
+                    myGame.makeMove(start, end);
+                //}
             }else{
                 System.out.println("Illegal move, try again");
             }

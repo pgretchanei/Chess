@@ -85,6 +85,22 @@ public class Player implements IPlayer {
         return this.offeredDraw;
     }
 
+    public Piece getPieceOnSquare(EPosition square){
+        Piece pieceHere = null;
+        int index = 0;
+        boolean found = false;
+        while(!found && index < numOfPieces){
+            if(pieces[index].getPosition().equals(square)) {
+                pieceHere = pieces[index];
+                break;
+            }
+            index++;
+        }
+        return pieceHere; // should never be null here
+
+
+    }
+
     private void InitializePieces( ESide side){
 
         // initialize 8 Pawns
@@ -141,7 +157,4 @@ public class Player implements IPlayer {
         }
 
     }
-
-
-
 }

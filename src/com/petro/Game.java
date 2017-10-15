@@ -1,16 +1,55 @@
 package com.petro;
 
+import java.util.HashSet;
+import java.util.Set;
+
+// TODO: think about how to implement enpassant rule
+// TODO: add promotion functionality
+
+
 public class Game {
+
+    private static final int rows = 8;
+    private static final int columns = 8;
+
     private EGameState state;
     private Player white;
     private Player black;
     private ESide nextToMove;
+    private EPosition[][] gameBoard;
 
     public Game() {
         white = new Player(ESide.WHITE);
         black = new Player(ESide.BLACK);
         nextToMove = ESide.WHITE;
         state = EGameState.IN_PROGRESS;
+        gameBoard = new EPosition[rows][columns];
+        initializeGameWorld();
+    }
+
+    private class SquareCoordinate {
+        public int row;
+        public int column;
+
+    }
+
+    private EPosition getPositionFromCoordinate(int row, int column){
+        return gameBoard[row][column];
+    }
+
+    private SquareCoordinate getCoordinateFromPosition(EPosition position){
+        SquareCoordinate coordinate = new SquareCoordinate();
+        for(int i = 0; i < rows; i++){
+            for(int j = 0; j < columns; j++){
+                if( gameBoard[i][j].equals(position)){
+                    coordinate.row = i;
+                    coordinate.column = j;
+                    return coordinate;
+                }
+            }
+        }
+
+        return coordinate;
     }
 
     private boolean isLegalMove(Player player, EPosition start, EPosition end){
@@ -18,15 +57,124 @@ public class Game {
         // 1. Determine if there is a piece that belongs to the current player at this square
         // 2. Determine if a piece can move(pinned to king)
         // 3. Determine if there are pieces(friendly/enemy) enroute(blocking) to the end square
+        // 4. Determine if piece can legally move to that square
         // 4. Determine if there is a firendly piece at the end square
         if(isDrawOrResignOffer(start))
             return true;
 
         boolean isThere = isPiecePresent(start);
+        boolean canLegallyMove = canPieceLegallyMove(start, end);
+
+
+        return isThere && canLegallyMove;
+    }
+
+    private void initializeGameWorld(){
+        // read out all squares
+        EPosition[] squares = new EPosition[EPosition.values().length];
+        int current = 0;
+        for(EPosition pos : EPosition.values()){
+            squares[current] = pos;
+            current++;
+        }
+
+        // put them into 2d array
+        current = 0;
+        for(int i = 0; i < rows; i++){
+            for(int j = 0; j< columns; j++){
+                gameBoard[i][j] = squares[current];
+                current++;
+            }
+        }
+    }
+
+    private boolean canPieceLegallyMove(EPosition start, EPosition end){
+        boolean canMove = false;
         boolean isDestTakenFriendly = isDestinationTakenFriendly(end);
-        boolean canMove = canPieceMove(start);
-        boolean isBlocked = isPieceBlocked(start, end);
-        return isThere && canMove && !isBlocked && !isDestTakenFriendly;
+        if( !isDestTakenFriendly) {
+            boolean pinned = isPinnedToKing(start);
+            boolean movingPatternAllowsMove = isAllowedMove(start, end);
+            if(!pinned && movingPatternAllowsMove){
+                boolean isBlocked = isPathBlocked(start, end);
+                canMove = !isBlocked;
+            }
+        }
+
+        return canMove;
+    }
+
+    private boolean isAllowedMove(EPosition start, EPosition end){
+        // Get list of legal squares based on pattern the piece moves
+        // See if end quare is in this set;
+        // return true if square is in the set; otherwise false
+        Player currentPlayer = getCurrentPlayer();
+        Piece currentPiece = currentPlayer.getPieceOnSquare(start);
+        EPiece pieceKind = currentPiece.getKind();
+        ESide currentSide = currentPlayer.getSide();
+
+        Set allowedSquares = getAllowedSquaresForPieceKind(pieceKind, currentSide, start);
+
+        return true;
+    }
+
+    private Set<EPosition> getAllowedSquaresForPieceKind(EPiece pieceKind, ESide side, EPosition start){
+        Set<EPosition> allowedSquares = new HashSet<EPosition>();
+        switch (pieceKind) {
+            case PAWN:
+                allowedSquares = getAllowedSquaresForPawn(start, side);
+                break;
+/*            case ROOK:
+                allowedSquares = getAllowedSquaresForRook(start);
+                break;
+            case KNIGHT:
+                allowedSquares = getAllowedSquaresForKnight(start);
+                break;
+            case BISHOP:
+                allowedSquares = getAllowedSquaresForBishop(start);
+                break;
+            case QUEEN:
+                allowedSquares = getAllowedSquaresForQueen(start);
+                break;
+            case KING:
+                allowedSquares = getAllowedSquaresForKing(start);
+                break;*/
+        }
+
+        return allowedSquares;
+    }
+
+    private Set<EPosition> getAllowedSquaresForPawn(EPosition start, ESide side){
+        Set<EPosition> allowedSquares = new HashSet<EPosition>();
+        if(isOnInitialRow(start, side)){
+            // add square that is two squares away
+            allowedSquares.add(getNSquareMovePosition(start, side, 2));
+        }
+        // add square in front
+        allowedSquares.add(getNSquareMovePosition(start, side, 1));
+
+        return allowedSquares;
+    }
+
+    private EPosition getNSquareMovePosition( EPosition start, ESide side, int n){
+        SquareCoordinate coordinate = getCoordinateFromPosition(start);
+        EPosition position;
+        if( side.equals(ESide.BLACK)){
+            position = getPositionFromCoordinate(coordinate.row - n, coordinate.column);
+        }else{
+            position = getPositionFromCoordinate( coordinate.row + n, coordinate.column);
+        }
+
+        return position;
+    }
+
+    private boolean isOnInitialRow(EPosition start, ESide side){
+        boolean isOnInitial = false;
+        int row = getCoordinateFromPosition(start).row;
+        if((side.equals(ESide.WHITE) && row == 1)
+            || side.equals(ESide.BLACK) && row == rows - 2){
+            isOnInitial = true;
+        }
+        return isOnInitial;
     }
 
     public void makeMove(EPosition start, EPosition end){
@@ -41,7 +189,7 @@ public class Game {
         }
 
         if(isLegalMove(currentPlayer, start, end)){
-            if(start.equals(EPosition.RESIGN)){
+            if(start.equals(EGameOffer.RESIGN)){
                 currentPlayer.setResigned();
                 System.out.println(currentPlayer.getSide() + " resigned.");
                 updateGameState();
@@ -50,7 +198,7 @@ public class Game {
             }
 
             //TODO: update draw mechanism as the player has to make a move and only then offer a draw
-            if(start.equals(EPosition.DRAW)) {
+            if(start.equals(EGameOffer.DRAW)) {
                 currentPlayer.setOfferedDraw(true);
                 System.out.println(currentPlayer.getSide() + " offered draw");
             }
@@ -134,27 +282,47 @@ public class Game {
     }
 
     private boolean isPiecePresent(EPosition position){
-        // TODO: implement this
-        return true;
+        Player currentPlayer = getCurrentPlayer();
+        boolean present = false;
+        if(currentPlayer.isPiecePresentAtPosition(position))
+            present = true;
+        return present;
     }
 
-    private boolean canPieceMove(EPosition position){
+    private boolean isPinnedToKing(EPosition position){
         //TODO: implement this
-        return true;
+        //this is check for pinned
+        return false;
     }
 
-    private boolean isPieceBlocked(EPosition start, EPosition end){
+    private boolean isPathBlocked(EPosition start, EPosition end){
         // TODO: implement this
+
         return false;
     }
 
     private boolean isDestinationTakenFriendly(EPosition destination){
-        return false;
+        Player currentPlayer = getCurrentPlayer();
+        boolean taken = true;
+        if( !currentPlayer.isPiecePresentAtPosition(destination))
+            taken = false;
+        return taken;
     }
+
+    private Player getCurrentPlayer(){
+        Player currentPlayer;
+        if(nextToMove.equals(ESide.WHITE)){
+            currentPlayer = white;
+        }else{
+            currentPlayer = black;
+        }
+
+        return currentPlayer;
+    };
 
     private boolean isDrawOrResignOffer(EPosition start){
         boolean isDrawResign = false;
-        if(start.equals(EPosition.DRAW) || start.equals(EPosition.RESIGN))
+        if(start.equals(EGameOffer.DRAW) || start.equals(EGameOffer.RESIGN))
             isDrawResign = true;
         return isDrawResign;
     }
@@ -170,8 +338,8 @@ public class Game {
 
     public EPosition convertToEnum(String input){
         input = input.toUpperCase();
-        EPosition position;
-        switch (input){
+        EPosition position = null;
+        switch (input) {
             case "A1":
                 position = EPosition.A1;
                 break;
@@ -364,15 +532,24 @@ public class Game {
             case "H8":
                 position = EPosition.H8;
                 break;
+        }
+
+        return position;
+    }
+
+    public EGameOffer convertToEnumOffer(String input) {
+        EGameOffer offer;
+        switch (input) {
             case "DRAW":
-                position = EPosition.DRAW;
+                offer = EGameOffer.DRAW;
                 break;
             case "RESIGN":
-                position = EPosition.RESIGN;
+                offer = EGameOffer.RESIGN;
                 break;
             default:
-                position = EPosition.ERROR;
+                offer = EGameOffer.ERROR;
         }
-        return position;
+
+        return offer;
     }
 }
